@@ -1,58 +1,31 @@
-import 'src/global.css';
+import { Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import DashboardPage from './pages/DashboardPage';
+import VendedoresPage from './pages/VendedoresPage';
+import DespesasPage from './pages/DespesasPage';
+import ReceitasPage from './pages/ReceitasPage';
+import SociosPage from './pages/SociosPage';
+import EventosPage from './pages/EventosPage';
+import ContasPage from './pages/ContasPage';
+import FluxoCaixaPage from './pages/FluxoCaixaPage';
+import LotesPage from './pages/LotesPage';
+import EquipamentosPage from './pages/EquipamentosPage';
 
-import { useEffect } from 'react';
-
-import Fab from '@mui/material/Fab';
-
-import { usePathname } from 'src/routes/hooks';
-
-import { ThemeProvider } from 'src/theme/theme-provider';
-
-import { Iconify } from 'src/components/iconify';
-
-// ----------------------------------------------------------------------
-
-  children;
-};
-
-export default function App({ children }) {
-  useScrollToTop();
-
-  const githubButton = () => (
-    <Fab
-      size="medium"
-      aria-label="Github"
-      href="https://github.com/minimal-ui-kit/material-kit-react"
-      sx={{
-        zIndex: 9,
-        right: 20,
-        bottom: 20,
-        width: 48,
-        height: 48,
-        position: 'fixed',
-        bgcolor: 'grey.800',
-      }}
-    >
-      <Iconify width={24} icon="socials:github" sx={{ '--color': 'white' }} />
-    </Fab>
-  );
-
+export default function App() {
   return (
-    <ThemeProvider>
-      {children}
-      {githubButton()}
-    </ThemeProvider>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/vendedores" element={<VendedoresPage />} />
+        <Route path="/despesas" element={<DespesasPage />} />
+        <Route path="/receitas" element={<ReceitasPage />} />
+        <Route path="/socios" element={<SociosPage />} />
+        <Route path="/eventos" element={<EventosPage />} />
+        <Route path="/contas" element={<ContasPage />} />
+        <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
+        <Route path="/lotes" element={<LotesPage />} />
+        <Route path="/equipamentos" element={<EquipamentosPage />} />
+      </Route>
+    </Routes>
   );
-}
-
-// ----------------------------------------------------------------------
-
-function useScrollToTop() {
-  const pathname = usePathname();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
 }

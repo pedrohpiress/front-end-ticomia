@@ -1,2 +1,0 @@
-import api from './api';
-import { FechamentoEventoDTO } from '../types'; export const fechamentoService = { listar ()=> { const response = await api.get('/fechamento'); return response.data; }, obter (id)=> { const response = await api.get(`/api/fechamento/${id}`); return response.data; }, gerar ()=> { const response = await api.post('/fechamento/gerar', {}); return response.data; }, fechar (id)=> { const response = await api.patch(`/api/fechamento/${id}/fechar`); return response.data; },

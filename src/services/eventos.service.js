@@ -1,2 +1,0 @@
-import api from './api';
-import { EventoDTO } from '../types'; export const eventosService = { listar ()=> { const response = await api.get('/evento'); return response.data; }, obter (id)=> { const response = await api.get(`/api/evento/${id}`); return response.data; }, criar (dados)=> { const response = await api.post('/evento', dados); return response.data; }, atualizar (id, dados)=> { const response = await api.put(`/api/evento/${id}`, dados); return response.data; }, obterAtivo ()=> { const response = await api.get('/evento/ativo'); return response.data; },
