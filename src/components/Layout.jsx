@@ -195,10 +195,19 @@ const styles = {
     color: '#f4f6f8',
     fontWeight: 600,
   },
-  content: {
+  contentDashboard: {
+    padding: '28px 32px 36px',
+    width: '100%',
+    maxWidth: '1720px',
+    margin: '0 auto',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    color: '#f4f6f8',
+  },
+  contentDefault: {
     padding: '24px',
     maxWidth: '1400px',
-    margin: '0 auto',
+    margin: '24px auto',
     backgroundColor: '#23272a',
     borderRadius: '12px',
     color: '#f4f6f8',
@@ -212,6 +221,7 @@ export default function Layout() {
   const location = useLocation();
 
   const currentPage = menuItems.find((item) => item.path === location.pathname);
+  const isDashboardPage = location.pathname === '/';
 
   return (
     <div style={styles.container}>
@@ -276,7 +286,7 @@ export default function Layout() {
         </header>
 
         {/* Page Content */}
-        <div style={styles.content}>
+        <div style={isDashboardPage ? styles.contentDashboard : styles.contentDefault}>
           <Outlet />
         </div>
       </main>

@@ -23,17 +23,19 @@ api.interceptors.response.use(
 // DASHBOARD
 // =====================
 export const dashboardService = {
-  // Dashboard completo com todos os KPIs
-  getCompleto: (ano = new Date().getFullYear()) =>
-    api.get('/dashboard/completo', { params: { ano } }),
+  // Endpoint unificado (v2)
+  getDashboard: (ano = new Date().getFullYear()) => api.get('/dashboard', { params: { ano } }),
 
-  // KPIs do dashboard
-  getKPIs: (ano = new Date().getFullYear()) =>
-    api.get('/dashboard/kpis', { params: { ano } }),
-
-  // Top 10 vendedores
-  getTopVendedores: (ano = new Date().getFullYear()) =>
-    api.get('/dashboard/top-vendedores', { params: { ano } }),
+  // Metodos de compatibilidade para codigo legado do front.
+  getCompleto: (ano = new Date().getFullYear()) => api.get('/dashboard', { params: { ano } }),
+  getKPIs: async (ano = new Date().getFullYear()) => {
+    const response = await api.get('/dashboard', { params: { ano } });
+    return { ...response, data: response.data?.kpis || {} };
+  },
+  getTopVendedores: async (ano = new Date().getFullYear()) => {
+    const response = await api.get('/dashboard', { params: { ano } });
+    return { ...response, data: response.data?.kpis?.top10Vendedores || [] };
+  },
 };
 
 // =====================
@@ -57,6 +59,7 @@ export const despesasService = {
   getAll: () => api.get('/despesas'),
   getById: (id) => api.get(`/despesas/${id}`),
   create: (data) => api.post('/despesas', data),
+  update: (id, data) => api.put(`/despesas/${id}`, data),
   getAbertas: () => api.get('/despesas/abertas'),
   getVencendoHoje: () => api.get('/despesas/vencendo-hoje'),
   pagar: (id, data) => api.post(`/despesas/${id}/pagar`, data),
@@ -127,8 +130,10 @@ export const bancosService = {
 export const fluxoCaixaService = {
   getAll: (pageable) => api.get('/fluxo-caixa', { params: pageable }),
   getById: (id) => api.get(`/fluxo-caixa/${id}`),
+  update: (id, data) => api.put(`/fluxo-caixa/${id}`, data),
   registrarEntrada: (data) => api.post('/fluxo-caixa/entrada', data),
   registrarSaida: (data) => api.post('/fluxo-caixa/saida', data),
+  filtrar: (filtros, pageable) => api.post('/fluxo-caixa/filtrar', filtros, { params: pageable }),
   getConsolidado: (inicio, fim) =>
     api.get('/fluxo-caixa/consolidado', { params: { inicio, fim } }),
   efetivar: (id) => api.patch(`/fluxo-caixa/${id}/efetivar`),
@@ -157,6 +162,9 @@ export const agendaService = {
 // =====================
 export const equipamentosService = {
   getAll: () => api.get('/equipamentos'),
+  getById: (id) => api.get(`/equipamentos/${id}`),
+  create: (data) => api.post('/equipamentos', data),
+  update: (id, data) => api.put(`/equipamentos/${id}`, data),
   getDisponiveis: () => api.get('/equipamentos/disponiveis'),
   getEmUso: () => api.get('/equipamentos/em-uso'),
   getByVendedor: (vendedorId) => api.get(`/equipamentos/vendedor/${vendedorId}`),
@@ -194,6 +202,21 @@ export const retiradasService = {
   getById: (id) => api.get(`/retiradas/${id}`),
   create: (data) => api.post('/retiradas', data),
   getBySocio: (socioId) => api.get(`/retiradas/socio/${socioId}`),
+};
+
+// =====================
+// TIPOS DE VENDEDOR (MAPEAMENTO FRONT)
+// =====================
+export const tiposVendedorService = {
+  // O Swagger atual nao expoe endpoint dedicado para tipos de vendedor.
+  // Mantemos o mapeamento local para exibicao nome <-> id.
+  getAll: async () => ({
+    data: [
+      { id: 1, nome: 'Comissario' },
+      { id: 2, nome: 'PDV' },
+      { id: 3, nome: 'Escritorio' },
+    ],
+  }),
 };
 
 export default api;

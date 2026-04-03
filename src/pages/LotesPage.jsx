@@ -17,6 +17,7 @@ const styles = {
   loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', color: '#637381' },
   error: { backgroundColor: '#fff5f5', color: '#b71c1c', padding: '16px', borderRadius: '8px', marginBottom: '24px' },
   emptyState: { textAlign: 'center', padding: '48px', color: '#637381' },
+  success: { backgroundColor: '#0f2f23', color: '#2fd18b', padding: '16px', borderRadius: '8px', marginBottom: '24px' },
   progressBar: { width: '100%', height: '8px', backgroundColor: 'rgba(145, 158, 171, 0.16)', borderRadius: '4px', overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#00a76f', borderRadius: '4px' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
@@ -27,6 +28,10 @@ const styles = {
   input: { width: '100%', padding: '12px 14px', border: '1px solid rgba(145, 158, 171, 0.32)', borderRadius: '8px', fontSize: '14px', outline: 'none' },
   modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' },
   buttonCancel: { backgroundColor: '#ffffff', color: '#637381', border: '1px solid rgba(145, 158, 171, 0.32)', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' },
+  actions: { display: 'flex', gap: '8px' },
+  actionButton: { border: '1px solid rgba(145, 158, 171, 0.32)', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', backgroundColor: '#ffffff', color: '#212b36' },
+  actionEdit: { color: '#1877F2' },
+  actionDisabled: { opacity: 0.6, cursor: 'not-allowed' },
 };
 
 const formatCurrency = (value) => {
@@ -43,7 +48,11 @@ export default function LotesPage() {
   const [lotes, setLotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ nome: '', valor: '', quantidade: '', dataInicio: '', dataFim: '', eventoId: 1 });
 
   useEffect(() => { fetchLotes(); }, []);
@@ -51,6 +60,8 @@ export default function LotesPage() {
   const fetchLotes = async () => {
     try {
       setLoading(true);
+      setError(null);
+      setSuccess(null);
       const response = await lotesService.getAll();
       setLotes(response.data);
     } catch (err) {
@@ -64,14 +75,63 @@ export default function LotesPage() {
     } finally { setLoading(false); }
   };
 
+  const resetForm = () => {
+    setFormData({ nome: '', valor: '', quantidade: '', dataInicio: '', dataFim: '', eventoId: 1 });
+  };
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    resetForm();
+    setModalOpen(true);
+  };
+
+  const openEditModal = async (id) => {
+    try {
+      setModalLoading(true);
+      setEditingId(id);
+      setModalOpen(true);
+      const response = await lotesService.getById(id);
+      const data = response.data || {};
+      setFormData({
+        nome: data.nome || '',
+        valor: data.valor !== undefined && data.valor !== null ? String(data.valor) : '',
+        quantidade: data.quantidade !== undefined && data.quantidade !== null ? String(data.quantidade) : '',
+        dataInicio: data.dataInicio || '',
+        dataFim: data.dataFim || '',
+        eventoId: data.eventoId || 1,
+      });
+    } catch (err) {
+      console.error('Erro ao carregar lote:', err);
+      setError('Erro ao carregar lote para edicao.');
+      setModalOpen(false);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await lotesService.create({ ...formData, valor: parseFloat(formData.valor), quantidade: parseInt(formData.quantidade) });
+      setIsSubmitting(true);
+      setError(null);
+      const payload = { ...formData, valor: parseFloat(formData.valor), quantidade: parseInt(formData.quantidade, 10) };
+      if (editingId) {
+        await lotesService.update(editingId, payload);
+        setSuccess('Lote atualizado com sucesso.');
+      } else {
+        await lotesService.create(payload);
+        setSuccess('Lote criado com sucesso.');
+      }
       setModalOpen(false);
-      setFormData({ nome: '', valor: '', quantidade: '', dataInicio: '', dataFim: '', eventoId: 1 });
+      setEditingId(null);
+      resetForm();
       fetchLotes();
-    } catch (err) { alert('Erro ao criar lote.'); }
+    } catch (err) {
+      console.error('Erro ao salvar lote:', err);
+      setError('Erro ao salvar lote.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStatusBadge = (lote) => {
@@ -87,11 +147,12 @@ export default function LotesPage() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Lotes de Ingresso</h1>
-        <button style={styles.button} onClick={() => setModalOpen(true)}>
+        <button style={styles.button} onClick={openCreateModal}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
           Novo Lote
         </button>
       </div>
+      {success && <div style={styles.success}>{success}</div>}
       {error && <div style={styles.error}>{error}</div>}
       <table style={styles.table}>
         <thead style={styles.tableHeader}>
@@ -103,11 +164,12 @@ export default function LotesPage() {
             <th style={styles.th}>Progresso</th>
             <th style={styles.th}>Periodo</th>
             <th style={styles.th}>Status</th>
+            <th style={styles.th}>Acoes</th>
           </tr>
         </thead>
         <tbody>
           {lotes.length === 0 ? (
-            <tr><td colSpan="7" style={styles.emptyState}>Nenhum lote cadastrado.</td></tr>
+            <tr><td colSpan="8" style={styles.emptyState}>Nenhum lote cadastrado.</td></tr>
           ) : (
             lotes.map((lote) => {
               const percentual = (lote.quantidadeVendida / lote.quantidade) * 100;
@@ -128,6 +190,22 @@ export default function LotesPage() {
                   <td style={styles.td}>
                     <span style={{ ...styles.badge, ...status.style }}>{status.text}</span>
                   </td>
+                  <td style={styles.td}>
+                    <div style={styles.actions}>
+                      <button
+                        type="button"
+                        style={{
+                          ...styles.actionButton,
+                          ...styles.actionEdit,
+                          ...(isSubmitting ? styles.actionDisabled : null),
+                        }}
+                        onClick={() => openEditModal(lote.id)}
+                        disabled={isSubmitting}
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               );
             })
@@ -138,33 +216,39 @@ export default function LotesPage() {
       {modalOpen && (
         <div style={styles.modalOverlay} onClick={() => setModalOpen(false)}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={styles.modalTitle}>Novo Lote</h2>
-            <form onSubmit={handleSubmit}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Nome *</label>
-                <input style={styles.input} type="text" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required />
-              </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Valor *</label>
-                <input style={styles.input} type="number" step="0.01" value={formData.valor} onChange={(e) => setFormData({ ...formData, valor: e.target.value })} required />
-              </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Quantidade *</label>
-                <input style={styles.input} type="number" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} required />
-              </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Data Inicio *</label>
-                <input style={styles.input} type="date" value={formData.dataInicio} onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })} required />
-              </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Data Fim *</label>
-                <input style={styles.input} type="date" value={formData.dataFim} onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })} required />
-              </div>
-              <div style={styles.modalActions}>
-                <button type="button" style={styles.buttonCancel} onClick={() => setModalOpen(false)}>Cancelar</button>
-                <button type="submit" style={styles.button}>Salvar</button>
-              </div>
-            </form>
+            <h2 style={styles.modalTitle}>{editingId ? 'Editar Lote' : 'Novo Lote'}</h2>
+            {modalLoading ? (
+              <div style={styles.loading}>Carregando...</div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Nome *</label>
+                  <input style={styles.input} type="text" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Valor *</label>
+                  <input style={styles.input} type="number" step="0.01" value={formData.valor} onChange={(e) => setFormData({ ...formData, valor: e.target.value })} required />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Quantidade *</label>
+                  <input style={styles.input} type="number" value={formData.quantidade} onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })} required />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Data Inicio *</label>
+                  <input style={styles.input} type="date" value={formData.dataInicio} onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })} required />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Data Fim *</label>
+                  <input style={styles.input} type="date" value={formData.dataFim} onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })} required />
+                </div>
+                <div style={styles.modalActions}>
+                  <button type="button" style={styles.buttonCancel} onClick={() => setModalOpen(false)} disabled={isSubmitting}>Cancelar</button>
+                  <button type="submit" style={styles.button} disabled={isSubmitting}>
+                    {isSubmitting ? 'Salvando...' : editingId ? 'Atualizar' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
