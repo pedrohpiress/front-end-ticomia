@@ -38,3 +38,20 @@ body {
 ::-webkit-scrollbar-track {
   background-color: #181a1b;
 }
+
+/* Keep chart tooltip text readable on light tooltip backgrounds */
+.apexcharts-tooltip,
+.apexcharts-tooltip-title,
+.apexcharts-tooltip-text,
+.apexcharts-tooltip-text-label,
+.apexcharts-tooltip-text-value,
+.apexcharts-tooltip-text-y-label,
+.apexcharts-tooltip-text-y-value,
+.apexcharts-tooltip-text-z-label,
+.apexcharts-tooltip-text-z-value,
+.apexcharts-xaxistooltip,
+.apexcharts-xaxistooltip-text,
+.apexcharts-yaxistooltip,
+.apexcharts-yaxistooltip-text {
+  color: #1f2937 !important;
+}

@@ -184,6 +184,8 @@ const colors = {
   cyan: '#00B8D9',
 };
 
+const chartTextColor = '#334155';
+
 const CardIcon = ({ type, bgColor }) => {
   const iconStyles = {
     ...styles.cardIcon,
@@ -417,9 +419,15 @@ export default function DashboardPage() {
     chart: {
       type: 'line',
       fontFamily: 'Public Sans, sans-serif',
+      foreColor: chartTextColor,
       toolbar: { show: false },
     },
     colors: [colors.green, colors.red],
+    legend: {
+      labels: {
+        colors: chartTextColor,
+      },
+    },
     stroke: {
       width: [3, 3],
       curve: 'smooth',
@@ -427,13 +435,13 @@ export default function DashboardPage() {
     xaxis: {
       categories: fluxoCategorias,
       labels: {
-        style: { fontFamily: 'Public Sans, sans-serif' },
+        style: { fontFamily: 'Public Sans, sans-serif', colors: chartTextColor },
       },
     },
     yaxis: {
       labels: {
         formatter: (value) => formatCurrency(value),
-        style: { fontFamily: 'Public Sans, sans-serif' },
+        style: { fontFamily: 'Public Sans, sans-serif', colors: chartTextColor },
       },
     },
     tooltip: { y: { formatter: (value) => formatCurrency(value) } },
@@ -449,6 +457,7 @@ export default function DashboardPage() {
     chart: {
       type: 'bar',
       fontFamily: 'Public Sans, sans-serif',
+      foreColor: chartTextColor,
       toolbar: {
         show: false,
       },
@@ -471,6 +480,7 @@ export default function DashboardPage() {
       labels: {
         style: {
           fontFamily: 'Public Sans, sans-serif',
+          colors: chartTextColor,
         },
       },
     },
@@ -479,6 +489,7 @@ export default function DashboardPage() {
         formatter: (value) => formatCurrency(value),
         style: {
           fontFamily: 'Public Sans, sans-serif',
+          colors: chartTextColor,
         },
       },
     },

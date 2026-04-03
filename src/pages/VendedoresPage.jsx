@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import WhatsAppButton from '../components/WhatsAppButton';
 import { tiposVendedorService, vendedoresService } from '../services/api';
+import { getVendedorTelefone, normalizePhoneForWhatsApp, normalizeVendedorTelefone } from '../services/vendedorService';
 
 const styles = {
   container: { padding: '0', backgroundColor: '#23272a', minHeight: '100vh' },
@@ -171,7 +173,8 @@ export default function VendedoresPage() {
 
   const fetchVendedores = async () => {
     const response = await vendedoresService.getAll();
-    setVendedores(response.data || []);
+    const data = Array.isArray(response.data) ? response.data.map(normalizeVendedorTelefone) : [];
+    setVendedores(data);
   };
 
   const resetForm = () => {
@@ -193,15 +196,19 @@ export default function VendedoresPage() {
     return tiposMap[vendedor.tipoVendedorId] || '-';
   };
 
-  const buildPayload = () => ({
-    numero: formData.numero ? Number(formData.numero) : undefined,
-    nome: formData.nome,
-    cidadeId: formData.cidadeId ? Number(formData.cidadeId) : undefined,
-    tipoVendedorId: Number(formData.tipoVendedorId),
-    whatsapp: formData.whatsapp || undefined,
-    ativo: Boolean(formData.ativo),
-    observacoes: formData.observacoes || undefined,
-  });
+  const buildPayload = () => {
+    const telefone = getVendedorTelefone(formData);
+
+    return {
+      numero: formData.numero ? Number(formData.numero) : undefined,
+      nome: formData.nome,
+      cidadeId: formData.cidadeId ? Number(formData.cidadeId) : undefined,
+      tipoVendedorId: Number(formData.tipoVendedorId),
+      whatsapp: telefone || undefined,
+      ativo: Boolean(formData.ativo),
+      observacoes: formData.observacoes || undefined,
+    };
+  };
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -220,7 +227,7 @@ export default function VendedoresPage() {
         numero: data.numero ?? '',
         nome: data.nome || '',
         cidadeId: data.cidadeId ?? '',
-        whatsapp: data.whatsapp || '',
+        whatsapp: getVendedorTelefone(data),
         tipoVendedorId: data.tipoVendedorId || 1,
         ativo: data.ativo !== false,
         observacoes: data.observacoes || '',
@@ -311,16 +318,17 @@ export default function VendedoresPage() {
             <th style={styles.th}>Nome</th>
             <th style={styles.th}>Cidade</th>
             <th style={styles.th}>Tipo</th>
-            <th style={styles.th}>WhatsApp</th>
+            <th style={styles.th}>Telefone</th>
             <th style={styles.th}>Faturamento</th>
             <th style={styles.th}>Status</th>
+            <th style={styles.th}>Contato</th>
             <th style={styles.th}>Acoes</th>
           </tr>
         </thead>
         <tbody>
           {vendedores.length === 0 ? (
             <tr>
-              <td colSpan="8" style={styles.emptyState}>Nenhum vendedor cadastrado.</td>
+              <td colSpan="9" style={styles.emptyState}>Nenhum vendedor cadastrado.</td>
             </tr>
           ) : (
             vendedores.map((vendedor) => (
@@ -329,12 +337,18 @@ export default function VendedoresPage() {
                 <td style={styles.td}>{vendedor.nome}</td>
                 <td style={styles.td}>{vendedor.cidade || '-'}</td>
                 <td style={styles.td}>{getTipoNome(vendedor)}</td>
-                <td style={styles.td}>{vendedor.whatsapp || '-'}</td>
+                <td style={styles.td}>{normalizePhoneForWhatsApp(vendedor.telefone) || '-'}</td>
                 <td style={styles.td}>{formatCurrency(vendedor.totalFaturamento)}</td>
                 <td style={styles.td}>
                   <span style={{ ...styles.badge, ...(vendedor.ativo ? styles.badgeActive : styles.badgeInactive) }}>
                     {vendedor.ativo ? 'Ativo' : 'Inativo'}
                   </span>
+                </td>
+                <td style={{ ...styles.td, textAlign: 'center' }}>
+                  <WhatsAppButton
+                    telefone={vendedor.telefone}
+                    mensagem={`Ola ${vendedor.nome}, tudo bem?`}
+                  />
                 </td>
                 <td style={styles.td}>
                   <div style={styles.actions}>
@@ -406,7 +420,7 @@ export default function VendedoresPage() {
                   <input style={styles.input} type="number" value={formData.cidadeId} onChange={(event) => setFormData({ ...formData, cidadeId: event.target.value })} />
                 </div>
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>WhatsApp</label>
+                  <label style={styles.label}>Telefone (WhatsApp)</label>
                   <input style={styles.input} type="text" value={formData.whatsapp} onChange={(event) => setFormData({ ...formData, whatsapp: event.target.value })} />
                 </div>
                 <div style={styles.formGroup}>
