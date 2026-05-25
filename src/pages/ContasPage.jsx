@@ -116,9 +116,6 @@ const tiposConta = [
   { value: 'INVESTIMENTO', label: 'Investimento' },
 ];
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0);
-
 export default function ContasPage() {
   const { saldosPorConta, setSaldoInicialContas, registrarTransferencia } = useContext(CaixaLocalContext);
   const [contas, setContas] = useState([]);
@@ -305,7 +302,6 @@ export default function ContasPage() {
                   }}
                   placeholder="R$ 0,00"
                 />
-              </div>
               </div>
               <div style={styles.modalActions}>
                 <button type="button" style={styles.buttonCancel} onClick={() => setModalContaOpen(false)}>Cancelar</button>
