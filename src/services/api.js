@@ -63,6 +63,7 @@ export const despesasService = {
   getAbertas: () => api.get('/despesas/abertas'),
   getVencendoHoje: () => api.get('/despesas/vencendo-hoje'),
   pagar: (id, data) => api.post(`/despesas/${id}/pagar`, data),
+  pagarComMultiplos: (id, data) => api.post(`/despesas/${id}/pagar-multiplo`, data),
 };
 
 // =====================

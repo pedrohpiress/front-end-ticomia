@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { despesasService } from '../services/api';
-import { formatCurrency, normalizeCurrency, isValidCurrency } from '../utils/currencyUtils';
+import { formatCurrency, normalizeCurrency, isValidCurrency, stripCurrency } from '../utils/currencyUtils';
 
 const styles = {
   modalOverlay: {
@@ -244,13 +244,15 @@ export default function MultiAccountPaymentModal({ isOpen, despesa, contas, onCl
                   style={styles.input}
                   value={payment.valor ? formatCurrency(payment.valor) : ''}
                   onChange={(e) => {
-                    const normalized = normalizeCurrency(e.target.value);
-                    if (!isNaN(normalized) || e.target.value === '') {
+                    const stripped = stripCurrency(e.target.value);
+                    const normalized = normalizeCurrency(stripped);
+                    if (!isNaN(normalized) || stripped === '') {
                       handlePaymentChange(index, 'valor', isNaN(normalized) ? '' : normalized);
                     }
                   }}
                   onBlur={(e) => {
-                    const normalized = normalizeCurrency(e.target.value);
+                    const stripped = stripCurrency(e.target.value);
+                    const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized)) {
                       handlePaymentChange(index, 'valor', normalized);
                     }

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { contasService } from '../services/api';
-import { formatCurrency, normalizeCurrency, isValidCurrency } from '../utils/currencyUtils';
+import { formatCurrency, normalizeCurrency, isValidCurrency, stripCurrency } from '../utils/currencyUtils';
 
 const styles = {
   modalOverlay: {
@@ -210,8 +210,9 @@ export default function TransferenciaModal({ isOpen, contas, onClose, onSuccess 
             type="text"
             value={formData.valor ? formatCurrency(formData.valor) : ''}
             onChange={(e) => {
-              const normalized = normalizeCurrency(e.target.value);
-              if (!isNaN(normalized) || e.target.value === '') {
+              const stripped = stripCurrency(e.target.value);
+              const normalized = normalizeCurrency(stripped);
+              if (!isNaN(normalized) || stripped === '') {
                 setFormData({
                   ...formData,
                   valor: isNaN(normalized) ? '' : normalized,
@@ -219,7 +220,8 @@ export default function TransferenciaModal({ isOpen, contas, onClose, onSuccess 
               }
             }}
             onBlur={(e) => {
-              const normalized = normalizeCurrency(e.target.value);
+              const stripped = stripCurrency(e.target.value);
+              const normalized = normalizeCurrency(stripped);
               if (!isNaN(normalized)) {
                 setFormData({ ...formData, valor: normalized });
               }
