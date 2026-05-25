@@ -1,6 +1,8 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { CaixaLocalContext } from '../components/CaixaLocalContext';
+import MultiAccountPaymentModal from '../components/MultiAccountPaymentModal';
 import { contasService, despesasService } from '../services/api';
+import { formatCurrency, normalizeCurrency, isValidCurrency } from '../utils/currencyUtils';
 
 const styles = {
   container: { padding: '0', backgroundColor: '#23272a', minHeight: '100vh' },
@@ -114,9 +116,6 @@ const styles = {
   },
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0);
-
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   return new Date(dateString).toLocaleDateString('pt-BR');
@@ -144,6 +143,8 @@ export default function DespesasPage() {
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payingId, setPayingId] = useState(null);
+  const [multiPaymentModalOpen, setMultiPaymentModalOpen] = useState(false);
+  const [selectedDespesaForMultiPayment, setSelectedDespesaForMultiPayment] = useState(null);
   const [formData, setFormData] = useState({
     descricao: '',
     valorTotal: '',
@@ -308,6 +309,20 @@ export default function DespesasPage() {
     }
   };
 
+  const handleOpenMultiPaymentModal = (despesa) => {
+    if (Number(despesa.saldoRestante ?? 0) <= 0) {
+      setError('Esta despesa já foi totalmente quitada.');
+      return;
+    }
+    setSelectedDespesaForMultiPayment(despesa);
+    setMultiPaymentModalOpen(true);
+  };
+
+  const handleMultiPaymentSuccess = async () => {
+    await fetchDespesas();
+    setSuccess('Despesa quitada com múltiplas contas com sucesso.');
+  };
+
   if (loading) return <div style={styles.loading}>Carregando despesas...</div>;
 
   return (
@@ -367,6 +382,15 @@ export default function DespesasPage() {
                     >
                       {payingId === despesa.id ? 'Quitando...' : 'Quitar'}
                     </button>
+                    <button
+                      type="button"
+                      style={{ ...styles.actionButton, color: '#ffa726' }}
+                      onClick={() => handleOpenMultiPaymentModal(despesa)}
+                      disabled={despesa.status === 'QUITADA'}
+                      title="Pagar com múltiplas contas"
+                    >
+                      Múltiplas
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -386,7 +410,25 @@ export default function DespesasPage() {
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Valor Total *</label>
-                <input style={styles.input} type="number" step="0.01" value={formData.valorTotal} onChange={(event) => setFormData({ ...formData, valorTotal: event.target.value })} required />
+                <input
+                  style={styles.input}
+                  type="text"
+                  value={formData.valorTotal ? formatCurrency(formData.valorTotal) : ''}
+                  onChange={(event) => {
+                    const normalized = normalizeCurrency(event.target.value);
+                    if (!isNaN(normalized) || event.target.value === '') {
+                      setFormData({ ...formData, valorTotal: isNaN(normalized) ? '' : normalized });
+                    }
+                  }}
+                  onBlur={(event) => {
+                    const normalized = normalizeCurrency(event.target.value);
+                    if (!isNaN(normalized)) {
+                      setFormData({ ...formData, valorTotal: normalized });
+                    }
+                  }}
+                  placeholder="R$ 0,00"
+                  required
+                />
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Fornecedor</label>
@@ -439,6 +481,17 @@ export default function DespesasPage() {
           </div>
         </div>
       )}
+
+      <MultiAccountPaymentModal
+        isOpen={multiPaymentModalOpen}
+        despesa={selectedDespesaForMultiPayment}
+        contas={contas}
+        onClose={() => {
+          setMultiPaymentModalOpen(false);
+          setSelectedDespesaForMultiPayment(null);
+        }}
+        onSuccess={handleMultiPaymentSuccess}
+      />
     </div>
   );
 }
