@@ -71,7 +71,9 @@ export default function SociosPage() {
       setLoading(true);
       setError(null);
       const response = await sociosService.getAll();
-      setSocios(response.data || []);
+      const payload = response?.data;
+      const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
+      setSocios(list);
     } catch (requestError) {
       console.error('Erro ao carregar socios:', requestError);
       setError('Erro ao carregar socios.');

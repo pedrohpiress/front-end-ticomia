@@ -77,8 +77,24 @@ export default function ReceitasPage() {
       setLoading(true);
       setError(null);
       const [receitasResponse, contasResponse] = await Promise.all([receitasService.getAll(), contasService.getAll()]);
-      setReceitas(receitasResponse.data || []);
-      setContas(contasResponse.data || []);
+      const receitasPayload = receitasResponse?.data;
+      const contasPayload = contasResponse?.data;
+      const receitasList = Array.isArray(receitasPayload)
+        ? receitasPayload
+        : Array.isArray(receitasPayload?.data)
+        ? receitasPayload.data
+        : Array.isArray(receitasPayload?.content)
+        ? receitasPayload.content
+        : [];
+      const contasList = Array.isArray(contasPayload)
+        ? contasPayload
+        : Array.isArray(contasPayload?.data)
+        ? contasPayload.data
+        : Array.isArray(contasPayload?.content)
+        ? contasPayload.content
+        : [];
+      setReceitas(receitasList);
+      setContas(contasList);
     } catch (requestError) {
       console.error('Erro ao carregar receitas:', requestError);
       setError('Erro ao carregar receitas. Verifique se o backend esta rodando.');
@@ -89,7 +105,9 @@ export default function ReceitasPage() {
 
   const fetchReceitas = async () => {
     const response = await receitasService.getAll();
-    setReceitas(response.data || []);
+    const payload = response?.data;
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
+    setReceitas(list);
   };
 
   const resetForm = () => {

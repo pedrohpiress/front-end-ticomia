@@ -136,7 +136,8 @@ export default function ContasPage() {
       setLoading(true);
       setError(null);
       const response = await contasService.getAll();
-      const nextContas = response.data || [];
+      const payload = response?.data;
+      const nextContas = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
       setContas(nextContas);
       setSaldoInicialContas(nextContas);
     } catch (requestError) {
@@ -289,14 +290,14 @@ export default function ContasPage() {
                   type="text"
                   value={formConta.saldoInicial ? formatCurrency(formConta.saldoInicial) : ''}
                   onChange={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized) || stripped === '') {
                       setFormConta({ ...formConta, saldoInicial: isNaN(normalized) ? '' : normalized });
                     }
                   }}
                   onBlur={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized)) {
                       setFormConta({ ...formConta, saldoInicial: normalized });
@@ -348,14 +349,14 @@ export default function ContasPage() {
                   type="text"
                   value={formTransferencia.valor ? formatCurrency(formTransferencia.valor) : ''}
                   onChange={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized) || stripped === '') {
                       setFormTransferencia({ ...formTransferencia, valor: isNaN(normalized) ? '' : normalized });
                     }
                   }}
                   onBlur={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized)) {
                       setFormTransferencia({ ...formTransferencia, valor: normalized });

@@ -157,7 +157,8 @@ export default function DespesasPage() {
 
   const fornecedores = useMemo(() => {
     const map = new Map();
-    despesas.forEach((despesa) => {
+    const list = Array.isArray(despesas) ? despesas : [];
+    list.forEach((despesa) => {
       if (!despesa.fornecedorNome) return;
       const key = despesa.fornecedorId || despesa.id;
       map.set(key, { id: key, nome: despesa.fornecedorNome });
@@ -184,12 +185,17 @@ export default function DespesasPage() {
 
   const fetchDespesas = async () => {
     const response = await despesasService.getAll();
-    setDespesas(response.data || []);
+    const payload = response?.data;
+    // Suporta respostas em formato array ou objeto (paginado: { data: [...] })
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+    setDespesas(list || []);
   };
 
   const fetchContas = async () => {
     const response = await contasService.getAll();
-    setContas(response.data || []);
+    const payload = response?.data;
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
+    setContas(list);
   };
 
   const resetForm = () => {
@@ -415,14 +421,14 @@ export default function DespesasPage() {
                   type="text"
                   value={formData.valorTotal ? formatCurrency(formData.valorTotal) : ''}
                   onChange={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized) || stripped === '') {
                       setFormData({ ...formData, valorTotal: isNaN(normalized) ? '' : normalized });
                     }
                   }}
                   onBlur={(event) => {
-                    const stripped = stripCurrency(event.target.value);
+                    const stripped = event.target.value;
                     const normalized = normalizeCurrency(stripped);
                     if (!isNaN(normalized)) {
                       setFormData({ ...formData, valorTotal: normalized });

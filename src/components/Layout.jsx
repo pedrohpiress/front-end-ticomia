@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { ChatButton } from './chat/ChatButton';
 
 // Icones SVG inline para evitar dependencias externas
 const icons = {
@@ -290,6 +291,9 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Chat Widget */}
+      <ChatButton />
     </div>
   );
 }

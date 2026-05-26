@@ -206,7 +206,14 @@ export default function FluxoCaixaPage() {
 
   const fetchLancamentos = async () => {
     const response = await fluxoCaixaService.getAll({ page: 0, size: 100, sort: 'dataLancamento,desc' });
-    const data = response.data?.content || response.data || [];
+    const payload = response?.data;
+    const data = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.content)
+      ? payload.content
+      : [];
     setLancamentos(data);
 
     data.forEach((item) => {
@@ -222,7 +229,9 @@ export default function FluxoCaixaPage() {
 
   const fetchContas = async () => {
     const response = await contasService.getAll();
-    setContas(response.data || []);
+    const payload = response?.data;
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
+    setContas(list);
   };
 
   const filteredLancamentos = useMemo(() => {

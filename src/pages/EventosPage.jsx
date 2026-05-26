@@ -55,7 +55,9 @@ export default function EventosPage() {
       setError(null);
       setSuccess(null);
       const response = await eventosService.getAll();
-      setEventos(response.data);
+      const payload = response?.data;
+      const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.content) ? payload.content : [];
+      setEventos(list);
     } catch (err) {
       setError('Erro ao carregar eventos.');
       setEventos([
