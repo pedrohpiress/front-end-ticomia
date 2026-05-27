@@ -21,18 +21,46 @@ api.interceptors.response.use(
 // =====================
 // DASHBOARD
 // =====================
+const normalizeDashboardParams = (input) => {
+  if (typeof input === 'number') {
+    return { ano: input };
+  }
+
+  if (!input || typeof input !== 'object') {
+    return { ano: new Date().getFullYear() };
+  }
+
+  const params = {};
+
+  if (input.ano !== undefined && input.ano !== null) {
+    params.ano = input.ano;
+  }
+
+  if (input.eventoId !== undefined && input.eventoId !== null) {
+    params.eventoId = input.eventoId;
+  }
+
+  if (input.consolidado !== undefined && input.consolidado !== null) {
+    params.consolidado = input.consolidado;
+  }
+
+  return params;
+};
+
 export const dashboardService = {
   // Endpoint unificado (v2)
-  getDashboard: (ano = new Date().getFullYear()) => api.get('/dashboard', { params: { ano } }),
+  getDashboard: (paramsOrAno = new Date().getFullYear()) =>
+    api.get('/dashboard', { params: normalizeDashboardParams(paramsOrAno) }),
 
   // Metodos de compatibilidade para codigo legado do front.
-  getCompleto: (ano = new Date().getFullYear()) => api.get('/dashboard', { params: { ano } }),
-  getKPIs: async (ano = new Date().getFullYear()) => {
-    const response = await api.get('/dashboard', { params: { ano } });
+  getCompleto: (paramsOrAno = new Date().getFullYear()) =>
+    api.get('/dashboard', { params: normalizeDashboardParams(paramsOrAno) }),
+  getKPIs: async (paramsOrAno = new Date().getFullYear()) => {
+    const response = await api.get('/dashboard', { params: normalizeDashboardParams(paramsOrAno) });
     return { ...response, data: response.data?.kpis || {} };
   },
-  getTopVendedores: async (ano = new Date().getFullYear()) => {
-    const response = await api.get('/dashboard', { params: { ano } });
+  getTopVendedores: async (paramsOrAno = new Date().getFullYear()) => {
+    const response = await api.get('/dashboard', { params: normalizeDashboardParams(paramsOrAno) });
     return { ...response, data: response.data?.kpis?.top10Vendedores || [] };
   },
 };

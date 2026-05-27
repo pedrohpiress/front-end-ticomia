@@ -3,6 +3,9 @@ import axios from 'axios';
 // Tipos para melhor type-safety
 interface ChatRequest {
   pergunta: string;
+  evento_id?: number | null;
+  evento_nome?: string | null;
+  consolidado?: boolean;
 }
 
 interface ChatResponse {
@@ -13,6 +16,7 @@ interface ChatResponse {
 const CHAT_API_BASE_URL = (import.meta as ImportMeta & { env?: { VITE_CHAT_API_URL?: string } }).env?.VITE_CHAT_API_URL || '/chat';
 const MAX_RETRIES = 2;
 const TIMEOUT_MS = 120000;
+const DASHBOARD_EVENT_STORAGE_KEY = 'dashboardSelectedEventContext';
 
 // Criando instância do axios
 const chatApi = axios.create({
@@ -22,6 +26,24 @@ const chatApi = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+const getSelectedDashboardEventContext = () => {
+  try {
+    const stored = localStorage.getItem(DASHBOARD_EVENT_STORAGE_KEY);
+    if (!stored) {
+      return null;
+    }
+
+    return JSON.parse(stored) as {
+      eventoId?: number | null;
+      eventoNome?: string | null;
+      consolidado?: boolean;
+    };
+  } catch (error) {
+    console.error('Erro ao ler contexto da dashboard para o chat:', error);
+    return null;
+  }
+};
 
 /**
  * Serviço centralizado para comunicação com o chatbot backend
@@ -51,8 +73,16 @@ export const chatService = {
     // Loop de retry
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
+        const contexto = getSelectedDashboardEventContext();
         const response = await chatApi.post<ChatResponse>('/chat/', {
           pergunta: message.trim(),
+          ...(contexto
+            ? {
+                evento_id: contexto.eventoId ?? null,
+                evento_nome: contexto.eventoNome ?? null,
+                consolidado: Boolean(contexto.consolidado),
+              }
+            : {}),
         });
 
         // Validar resposta

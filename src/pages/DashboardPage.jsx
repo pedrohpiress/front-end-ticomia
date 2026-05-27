@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
+import { useSearchParams } from 'react-router-dom';
 import { dashboardService } from '../services/api';
+import { eventosService } from '../services/api';
 
 const styles = {
   page: {
@@ -26,9 +28,10 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    flexWrap: 'wrap',
   },
-  yearInput: {
-    width: '120px',
+  select: {
+    minWidth: '240px',
     backgroundColor: '#181a1b',
     color: '#f4f6f8',
     border: '1px solid rgba(145, 158, 171, 0.32)',
@@ -36,14 +39,23 @@ const styles = {
     padding: '10px 12px',
     fontSize: '14px',
   },
-  button: {
-    backgroundColor: '#00A76F',
+  scopeLabel: {
+    fontSize: '12px',
+    color: '#9BA7B2',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: '4px',
+  },
+  scopeValue: {
+    fontSize: '14px',
     color: '#f4f6f8',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px 16px',
-    cursor: 'pointer',
     fontWeight: 600,
+  },
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: '18px',
+    marginBottom: 0,
   },
   cardsGrid: {
     display: 'grid',
@@ -260,7 +272,8 @@ const formatDate = (value) => {
 };
 
 const isEntrada = (tipo = '') => String(tipo).toUpperCase().includes('ENTRADA');
-const INITIAL_YEAR = new Date().getFullYear();
+const DASHBOARD_EVENT_STORAGE_KEY = 'dashboardSelectedEventContext';
+const ALL_EVENTS_VALUE = 'all';
 
 const getMockData = () => ({
   financeiro: {
@@ -356,30 +369,119 @@ const getMockData = () => ({
   timestamp: '2026-04-02T22:45:30.123456',
 });
 
+const readStoredDashboardEvent = () => {
+  try {
+    const stored = localStorage.getItem(DASHBOARD_EVENT_STORAGE_KEY);
+    if (!stored) return ALL_EVENTS_VALUE;
+
+    const parsed = JSON.parse(stored);
+    if (parsed?.consolidado || parsed?.eventoId === null || parsed?.eventoId === undefined) {
+      return ALL_EVENTS_VALUE;
+    }
+
+    return String(parsed.eventoId);
+  } catch (error) {
+    console.error('Erro ao ler evento salvo:', error);
+    return ALL_EVENTS_VALUE;
+  }
+};
+
+const buildDashboardRequestParams = (selectedEventValue) => {
+  if (!selectedEventValue || selectedEventValue === ALL_EVENTS_VALUE) {
+    return { consolidado: true };
+  }
+
+  const eventoId = Number(selectedEventValue);
+  return Number.isFinite(eventoId) ? { eventoId } : { consolidado: true };
+};
+
+const buildDashboardStoragePayload = (selectedEventValue, selectedEvent) => ({
+  eventoId: selectedEventValue === ALL_EVENTS_VALUE ? null : Number(selectedEventValue),
+  eventoNome: selectedEvent?.nome || null,
+  consolidado: selectedEventValue === ALL_EVENTS_VALUE,
+});
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(INITIAL_YEAR);
+  const [eventos, setEventos] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedEventValue, setSelectedEventValue] = useState(() => {
+    const queryValue = searchParams.get('eventoId');
+    if (queryValue) return queryValue;
+    return typeof window !== 'undefined' ? readStoredDashboardEvent() : ALL_EVENTS_VALUE;
+  });
+
+  const selectedEvent = useMemo(() => {
+    if (selectedEventValue === ALL_EVENTS_VALUE) return null;
+    return eventos.find((evento) => String(evento.id) === String(selectedEventValue)) || null;
+  }, [eventos, selectedEventValue]);
+
+  const selectedScopeLabel = selectedEvent?.nome || 'Todos os eventos';
+  const selectedScopeDescription = selectedEvent
+    ? `Evento ${selectedEvent.id}${selectedEvent.dataEvento ? ` · ${formatDate(selectedEvent.dataEvento)}` : ''}`
+    : 'Visão consolidada de todos os eventos';
 
   useEffect(() => {
-    fetchDashboard(INITIAL_YEAR);
+    const loadEventos = async () => {
+      try {
+        const response = await eventosService.getAll();
+        const payload = response?.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.content)
+              ? payload.content
+              : [];
+
+        setEventos(list);
+      } catch (err) {
+        console.error('Erro ao carregar eventos da dashboard:', err);
+        setEventos([]);
+      }
+    };
+
+    loadEventos();
   }, []);
 
-  const fetchDashboard = async (ano) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await dashboardService.getDashboard(ano);
-      setDashboardData(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar dashboard:', err);
-      setError('Erro ao carregar dados do dashboard. Verifique se o backend esta rodando.');
-      setDashboardData(getMockData());
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const currentQueryValue = searchParams.get('eventoId') || ALL_EVENTS_VALUE;
+    if (currentQueryValue !== selectedEventValue) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('eventoId', selectedEventValue);
+      setSearchParams(nextParams, { replace: true });
     }
-  };
+
+    try {
+      localStorage.setItem(
+        DASHBOARD_EVENT_STORAGE_KEY,
+        JSON.stringify(buildDashboardStoragePayload(selectedEventValue, selectedEvent))
+      );
+    } catch (err) {
+      console.error('Erro ao salvar evento selecionado:', err);
+    }
+  }, [selectedEventValue, selectedEvent, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await dashboardService.getDashboard(buildDashboardRequestParams(selectedEventValue));
+        setDashboardData(response.data);
+      } catch (err) {
+        console.error('Erro ao carregar dashboard:', err);
+        setError('Erro ao carregar dados do dashboard. Verifique se o backend esta rodando.');
+        setDashboardData(getMockData());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, [selectedEventValue]);
 
   const financeiro = dashboardData?.financeiro || {};
   const kpis = dashboardData?.kpis || {};
@@ -391,12 +493,21 @@ export default function DashboardPage() {
     [financeiro.fluxoCaixa]
   );
 
+  const contasOrdenadas = useMemo(
+    () => [...(financeiro.contas || [])].sort((a, b) => Number(b.saldoAtual || 0) - Number(a.saldoAtual || 0)),
+    [financeiro.contas]
+  );
+
   const top5Vendedores = (kpis.top10Vendedores || []).slice(0, 5);
+  const totalBancario = contasOrdenadas.reduce((total, conta) => total + Number(conta.saldoAtual || 0), 0);
+  const totalCaixa = Number(financeiro.saldoTotalCaixa || 0);
+  const saldoTotal = totalCaixa + totalBancario;
+  const despesasPendentes = Number(alertas.totalPagamentosVencendo || financeiro.totalDespesas || 0);
 
   const fluxoCategorias =
     fluxoOrdenado.length > 0
       ? fluxoOrdenado.map((mov) => formatDate(mov.data))
-      : ['Mes atual'];
+      : ['Sem dados'];
 
   const entradasSerie =
     fluxoOrdenado.length > 0
@@ -407,13 +518,6 @@ export default function DashboardPage() {
     fluxoOrdenado.length > 0
       ? fluxoOrdenado.map((mov) => (!isEntrada(mov.tipo) ? Number(mov.valor || 0) : 0))
       : [Number(financeiro.saidasMesAtual || 0)];
-
-  const vendedorPerfis = [
-    Number(kpis.totalComissarios || 0),
-    Number(kpis.totalPontosVenda || 0),
-    Number(kpis.totalEscritorios || 0),
-  ];
-  const hasPerfisData = vendedorPerfis.some((value) => value > 0);
 
   const fluxoChartOptions = {
     chart: {
@@ -515,16 +619,20 @@ export default function DashboardPage() {
     },
   ];
 
-  const perfilChartOptions = {
+  const contasChartOptions = {
     chart: {
       type: 'donut',
       fontFamily: 'Public Sans, sans-serif',
+      foreColor: chartTextColor,
     },
-    labels: ['Comissarios', 'PDVs', 'Escritorios'],
-    colors: [colors.blue, colors.cyan, colors.purple],
+    labels: contasOrdenadas.length > 0 ? contasOrdenadas.map((conta) => conta.nome || '-') : ['Sem dados'],
+    colors: [colors.blue, colors.cyan, colors.purple, colors.yellow, colors.green],
     legend: {
       position: 'bottom',
       fontFamily: 'Public Sans, sans-serif',
+      labels: {
+        colors: chartTextColor,
+      },
     },
     dataLabels: { enabled: false },
     plotOptions: {
@@ -537,7 +645,7 @@ export default function DashboardPage() {
     stroke: { width: 0 },
   };
 
-  const perfilChartSeries = hasPerfisData ? vendedorPerfis : [1, 0, 0];
+  const contasChartSeries = contasOrdenadas.length > 0 ? contasOrdenadas.map((conta) => Number(conta.saldoAtual || 0)) : [1];
 
   const dadosValidados = Boolean(financeiro.receitas_validadas && financeiro.despesas_validadas);
 
@@ -548,20 +656,31 @@ export default function DashboardPage() {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Dashboard Unificado</h1>
+        <div>
+          <h1 style={styles.title}>Dashboard Unificado</h1>
+          <div style={styles.scopeLabel}>Escopo atual</div>
+          <div style={styles.scopeValue}>{selectedScopeLabel}</div>
+          <div style={{ ...styles.scopeValue, fontSize: '12px', fontWeight: 500, color: '#b0b8c1', marginTop: '2px' }}>
+            {selectedScopeDescription}
+          </div>
+        </div>
         <div style={styles.filters}>
-          <input
-            type="number"
-            min="2000"
-            max="2100"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value || new Date().getFullYear()))}
-            style={styles.yearInput}
-            aria-label="Ano"
-          />
-          <button style={styles.button} onClick={() => fetchDashboard(selectedYear)} type="button">
-            Atualizar
-          </button>
+          <select
+            value={selectedEventValue}
+            onChange={(e) => setSelectedEventValue(e.target.value)}
+            style={styles.select}
+            aria-label="Selecionar evento"
+          >
+            <option value={ALL_EVENTS_VALUE}>Todos os eventos</option>
+            {eventos
+              .slice()
+              .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')))
+              .map((evento) => (
+                <option key={evento.id} value={evento.id}>
+                  {evento.nome}
+                </option>
+              ))}
+          </select>
         </div>
       </div>
 
@@ -572,6 +691,56 @@ export default function DashboardPage() {
           <small>Exibindo dados de demonstracao.</small>
         </div>
       )}
+
+      <div style={styles.summaryGrid}>
+        <div style={styles.card}>
+          <CardIcon type="caixa" bgColor={colors.green} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Saldo total</div>
+            <div style={styles.cardValue}>{formatCurrency(saldoTotal)}</div>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <CardIcon type="caixa" bgColor={colors.blue} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Total em caixa</div>
+            <div style={styles.cardValue}>{formatCurrency(totalCaixa)}</div>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <CardIcon type="faturamento" bgColor={colors.yellow} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Total bancário</div>
+            <div style={styles.cardValue}>{formatCurrency(totalBancario)}</div>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <CardIcon type="alerta" bgColor={colors.red} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Despesas pendentes</div>
+            <div style={styles.cardValue}>{formatNumber(despesasPendentes)}</div>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <CardIcon type="faturamento" bgColor={colors.purple} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Faturamento</div>
+            <div style={styles.cardValue}>{formatCurrency(financeiro.totalReceitas)}</div>
+          </div>
+        </div>
+
+        <div style={styles.card}>
+          <CardIcon type="comissoes" bgColor={colors.cyan} />
+          <div style={styles.cardContent}>
+            <div style={styles.cardTitle}>Lucro líquido</div>
+            <div style={styles.cardValue}>{formatCurrency(financeiro.saldoLiquido)}</div>
+          </div>
+        </div>
+      </div>
 
       <div style={styles.cardsGrid}>
         <div style={styles.card}>
@@ -591,34 +760,10 @@ export default function DashboardPage() {
         </div>
 
         <div style={styles.card}>
-          <CardIcon type="faturamento" bgColor={colors.yellow} />
-          <div style={styles.cardContent}>
-            <div style={styles.cardTitle}>Faturamento Total</div>
-            <div style={styles.cardValue}>{formatCurrency(kpis.faturamentoTotal)}</div>
-          </div>
-        </div>
-
-        <div style={styles.card}>
           <CardIcon type="comissoes" bgColor={colors.red} />
           <div style={styles.cardContent}>
             <div style={styles.cardTitle}>Comissoes Totais</div>
             <div style={styles.cardValue}>{formatCurrency(kpis.comissoesTotais)}</div>
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <CardIcon type="caixa" bgColor={colors.green} />
-          <div style={styles.cardContent}>
-            <div style={styles.cardTitle}>Saldo Total Caixa</div>
-            <div style={styles.cardValue}>{formatCurrency(financeiro.saldoTotalCaixa)}</div>
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <CardIcon type="alerta" bgColor={colors.red} />
-          <div style={styles.cardContent}>
-            <div style={styles.cardTitle}>Pagamentos Urgentes (7 dias)</div>
-            <div style={styles.cardValue}>{formatNumber(alertas.pagamentosVencendo7Dias)}</div>
           </div>
         </div>
 
@@ -641,7 +786,7 @@ export default function DashboardPage() {
 
       <div style={styles.chartsGrid}>
         <div style={styles.chartCard}>
-          <h3 style={styles.chartTitle}>Fluxo de Caixa Recente</h3>
+          <h3 style={styles.chartTitle}>Evolução Financeira</h3>
           <Chart options={fluxoChartOptions} series={fluxoChartSeries} type="line" height={320} />
         </div>
 
@@ -651,8 +796,8 @@ export default function DashboardPage() {
         </div>
 
         <div style={styles.chartCard}>
-          <h3 style={styles.chartTitle}>Perfil de Vendedores</h3>
-          <Chart options={perfilChartOptions} series={perfilChartSeries} type="donut" height={320} />
+          <h3 style={styles.chartTitle}>Contas Bancárias</h3>
+          <Chart options={contasChartOptions} series={contasChartSeries} type="donut" height={320} />
         </div>
       </div>
 
@@ -669,9 +814,9 @@ export default function DashboardPage() {
             <li style={styles.listItem}>Receitas: {formatCurrency(financeiro.totalReceitas)}</li>
             <li style={styles.listItem}>Despesas: {formatCurrency(financeiro.totalDespesas)}</li>
             <li style={styles.listItem}>Saldo liquido: {formatCurrency(financeiro.saldoLiquido)}</li>
-            <li style={styles.listItem}>Entradas do mes: {formatCurrency(financeiro.entradasMesAtual)}</li>
-            <li style={styles.listItem}>Saidas do mes: {formatCurrency(financeiro.saidasMesAtual)}</li>
-            <li style={styles.listItem}>Resultado do mes: {formatCurrency(financeiro.resultadoMesAtual)}</li>
+            <li style={styles.listItem}>Entradas do periodo: {formatCurrency(financeiro.entradasMesAtual)}</li>
+            <li style={styles.listItem}>Saidas do periodo: {formatCurrency(financeiro.saidasMesAtual)}</li>
+            <li style={styles.listItem}>Resultado do periodo: {formatCurrency(financeiro.resultadoMesAtual)}</li>
           </ul>
         </section>
 
@@ -700,8 +845,8 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {(financeiro.contas || []).length > 0 ? (
-                  (financeiro.contas || []).map((conta) => (
+                {contasOrdenadas.length > 0 ? (
+                  contasOrdenadas.map((conta) => (
                     <tr key={conta.id}>
                       <td style={styles.td}>{conta.nome || '-'}</td>
                       <td style={styles.td}>{conta.banco || '-'}</td>
@@ -752,15 +897,9 @@ export default function DashboardPage() {
             </table>
           </div>
           <ul style={styles.list}>
-            <li style={styles.listItem}>
-              Vencidos hoje: {formatNumber(alertas.pagamentosVencidosHoje)}
-            </li>
-            <li style={styles.listItem}>
-              Vencem amanha: {formatNumber(alertas.pagamentosVencendoAmanha)}
-            </li>
-            <li style={styles.listItem}>
-              Valor total vencendo: {formatCurrency(alertas.valorTotalVencendo)}
-            </li>
+            <li style={styles.listItem}>Vencidos hoje: {formatNumber(alertas.pagamentosVencidosHoje)}</li>
+            <li style={styles.listItem}>Vencem amanha: {formatNumber(alertas.pagamentosVencendoAmanha)}</li>
+            <li style={styles.listItem}>Valor total vencendo: {formatCurrency(alertas.valorTotalVencendo)}</li>
           </ul>
         </section>
 
@@ -838,7 +977,7 @@ export default function DashboardPage() {
         <ul style={styles.list}>
           <li style={styles.listItem}>Versao: {dashboardData?.versao || '-'}</li>
           <li style={styles.listItem}>Timestamp: {dashboardData?.timestamp || '-'}</li>
-          <li style={styles.listItem}>Ano consultado: {selectedYear}</li>
+          <li style={styles.listItem}>Escopo: {selectedScopeLabel}</li>
         </ul>
       </section>
     </div>
