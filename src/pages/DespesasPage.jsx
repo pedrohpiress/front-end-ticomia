@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { CaixaLocalContext } from '../components/CaixaLocalContext';
 import MultiAccountPaymentModal from '../components/MultiAccountPaymentModal';
 import { contasService, despesasService } from '../services/api';
-import { formatCurrency, normalizeCurrency, isValidCurrency, stripCurrency } from '../utils/currencyUtils';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const styles = {
   container: { padding: '0', backgroundColor: '#23272a', minHeight: '100vh' },
@@ -418,23 +418,10 @@ export default function DespesasPage() {
                 <label style={styles.label}>Valor Total *</label>
                 <input
                   style={styles.input}
-                  type="text"
-                  value={formData.valorTotal ? formatCurrency(formData.valorTotal) : ''}
-                  onChange={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized) || stripped === '') {
-                      setFormData({ ...formData, valorTotal: isNaN(normalized) ? '' : normalized });
-                    }
-                  }}
-                  onBlur={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized)) {
-                      setFormData({ ...formData, valorTotal: normalized });
-                    }
-                  }}
-                  placeholder="R$ 0,00"
+                  type="number"
+                  step="0.01"
+                  value={formData.valorTotal}
+                  onChange={(event) => setFormData({ ...formData, valorTotal: event.target.value })}
                   required
                 />
               </div>

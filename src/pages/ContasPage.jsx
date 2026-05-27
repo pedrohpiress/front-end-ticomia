@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { CaixaLocalContext } from '../components/CaixaLocalContext';
 import TransferenciaModal from '../components/TransferenciaModal';
 import { contasService } from '../services/api';
-import { formatCurrency, normalizeCurrency, isValidCurrency, stripCurrency } from '../utils/currencyUtils';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const styles = {
   container: { padding: '0', backgroundColor: '#23272a', minHeight: '100vh' },
@@ -287,23 +287,10 @@ export default function ContasPage() {
                 <label style={styles.label}>Saldo Inicial</label>
                 <input
                   style={styles.input}
-                  type="text"
-                  value={formConta.saldoInicial ? formatCurrency(formConta.saldoInicial) : ''}
-                  onChange={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized) || stripped === '') {
-                      setFormConta({ ...formConta, saldoInicial: isNaN(normalized) ? '' : normalized });
-                    }
-                  }}
-                  onBlur={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized)) {
-                      setFormConta({ ...formConta, saldoInicial: normalized });
-                    }
-                  }}
-                  placeholder="R$ 0,00"
+                  type="number"
+                  step="0.01"
+                  value={formConta.saldoInicial}
+                  onChange={(event) => setFormConta({ ...formConta, saldoInicial: event.target.value })}
                 />
               </div>
               <div style={styles.modalActions}>
@@ -346,23 +333,10 @@ export default function ContasPage() {
                 <label style={styles.label}>Valor *</label>
                 <input
                   style={styles.input}
-                  type="text"
-                  value={formTransferencia.valor ? formatCurrency(formTransferencia.valor) : ''}
-                  onChange={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized) || stripped === '') {
-                      setFormTransferencia({ ...formTransferencia, valor: isNaN(normalized) ? '' : normalized });
-                    }
-                  }}
-                  onBlur={(event) => {
-                    const stripped = event.target.value;
-                    const normalized = normalizeCurrency(stripped);
-                    if (!isNaN(normalized)) {
-                      setFormTransferencia({ ...formTransferencia, valor: normalized });
-                    }
-                  }}
-                  placeholder="R$ 0,00"
+                  type="number"
+                  step="0.01"
+                  value={formTransferencia.valor}
+                  onChange={(event) => setFormTransferencia({ ...formTransferencia, valor: event.target.value })}
                   required
                 />
               </div>

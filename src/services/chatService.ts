@@ -10,7 +10,7 @@ interface ChatResponse {
 }
 
 // Configurações
-const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_URL || '/chat';
+const CHAT_API_BASE_URL = (import.meta as ImportMeta & { env?: { VITE_CHAT_API_URL?: string } }).env?.VITE_CHAT_API_URL || '/chat';
 const MAX_RETRIES = 2;
 const TIMEOUT_MS = 120000;
 
