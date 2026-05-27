@@ -122,6 +122,7 @@ export default function ContasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [modalContaOpen, setModalContaOpen] = useState(false);
   const [modalTransferenciaOpen, setModalTransferenciaOpen] = useState(false);
   const [formConta, setFormConta] = useState({ nome: '', tipo: 'CORRENTE', agencia: '', numeroConta: '', bancoId: 1, saldoInicial: '' });
@@ -223,12 +224,13 @@ export default function ContasPage() {
             <th style={styles.th}>Conta</th>
             <th style={styles.th}>Saldo Atual</th>
             <th style={styles.th}>Status</th>
+            <th style={styles.th}>Acoes</th>
           </tr>
         </thead>
         <tbody>
           {contas.length === 0 ? (
             <tr>
-              <td colSpan="7" style={styles.emptyState}>Nenhuma conta cadastrada.</td>
+              <td colSpan="8" style={styles.emptyState}>Nenhuma conta cadastrada.</td>
             </tr>
           ) : (
             contas.map((conta) => {
@@ -248,6 +250,32 @@ export default function ContasPage() {
                   </td>
                   <td style={styles.td}>
                     <span style={{ ...styles.badge, ...styles.badgeActive }}>{conta.ativa ? 'Ativa' : 'Inativa'}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        style={{ ...styles.buttonSecondary, backgroundColor: '#b71c1c' }}
+                        onClick={async () => {
+                          if (!window.confirm('Confirma a exclusao desta conta?')) return;
+                          try {
+                            setDeletingId(conta.id);
+                            setError(null);
+                            await contasService.delete(conta.id);
+                            setContas((current) => current.filter((c) => c.id !== conta.id));
+                            setSuccess('Conta excluida com sucesso.');
+                          } catch (requestError) {
+                            console.error('Erro ao excluir conta:', requestError);
+                            setError('Erro ao excluir conta.');
+                          } finally {
+                            setDeletingId(null);
+                          }
+                        }}
+                        disabled={deletingId === conta.id}
+                      >
+                        {deletingId === conta.id ? 'Excluindo...' : 'Excluir'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

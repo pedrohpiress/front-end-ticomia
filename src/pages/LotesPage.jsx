@@ -53,6 +53,7 @@ export default function LotesPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', valor: '', quantidade: '', dataInicio: '', dataFim: '', eventoId: 1 });
 
   useEffect(() => { fetchLotes(); }, []);
@@ -106,6 +107,22 @@ export default function LotesPage() {
       setModalOpen(false);
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao deste lote?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await lotesService.delete(id);
+      setLotes((current) => current.filter((l) => l.id !== id));
+      setSuccess('Lote excluido com sucesso.');
+    } catch (err) {
+      console.error('Erro ao excluir lote:', err);
+      setError('Erro ao excluir lote.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -203,6 +220,14 @@ export default function LotesPage() {
                         disabled={isSubmitting}
                       >
                         Editar
+                      </button>
+                      <button
+                        type="button"
+                        style={{ ...styles.actionButton, color: '#b71c1c' }}
+                        onClick={() => handleDelete(lote.id)}
+                        disabled={deletingId === lote.id}
+                      >
+                        {deletingId === lote.id ? 'Excluindo...' : 'Excluir'}
                       </button>
                     </div>
                   </td>

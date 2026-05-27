@@ -143,6 +143,7 @@ export default function DespesasPage() {
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payingId, setPayingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [multiPaymentModalOpen, setMultiPaymentModalOpen] = useState(false);
   const [selectedDespesaForMultiPayment, setSelectedDespesaForMultiPayment] = useState(null);
   const [formData, setFormData] = useState({
@@ -329,6 +330,22 @@ export default function DespesasPage() {
     setSuccess('Despesa quitada com múltiplas contas com sucesso.');
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao desta despesa?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await despesasService.delete(id);
+      setDespesas((current) => current.filter((item) => item.id !== id));
+      setSuccess('Despesa excluida com sucesso.');
+    } catch (requestError) {
+      console.error('Erro ao excluir despesa:', requestError);
+      setError('Erro ao excluir despesa.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading) return <div style={styles.loading}>Carregando despesas...</div>;
 
   return (
@@ -396,6 +413,14 @@ export default function DespesasPage() {
                       title="Pagar com múltiplas contas"
                     >
                       Múltiplas
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...styles.actionButton, color: '#b71c1c' }}
+                      onClick={() => handleDelete(despesa.id)}
+                      disabled={deletingId === despesa.id}
+                    >
+                      {deletingId === despesa.id ? 'Excluindo...' : 'Excluir'}
                     </button>
                   </div>
                 </td>

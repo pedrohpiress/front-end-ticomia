@@ -60,6 +60,7 @@ export default function SociosPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', cpf: '', telefone: '', email: '', percentualParticipacao: '' });
 
   useEffect(() => {
@@ -99,6 +100,22 @@ export default function SociosPage() {
 
   const resetForm = () => {
     setFormData({ nome: '', cpf: '', telefone: '', email: '', percentualParticipacao: '' });
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao deste socio?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await sociosService.delete(id);
+      setSocios((current) => current.filter((s) => s.id !== id));
+      setSuccess('Socio excluido com sucesso.');
+    } catch (requestError) {
+      console.error('Erro ao excluir socio:', requestError);
+      setError('Erro ao excluir socio.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const openCreateModal = () => {
@@ -209,6 +226,14 @@ export default function SociosPage() {
                       disabled={isSubmitting}
                     >
                       Editar
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...styles.actionButton, color: '#b71c1c' }}
+                      onClick={() => handleDelete(socio.id)}
+                      disabled={deletingId === socio.id}
+                    >
+                      {deletingId === socio.id ? 'Excluindo...' : 'Excluir'}
                     </button>
                   </div>
                 </td>

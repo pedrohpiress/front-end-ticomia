@@ -64,6 +64,7 @@ export default function EquipamentosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({ patrimonio: '', tipoEquipamento: '', serial: '', status: 'DISPONIVEL', observacoes: '' });
 
   useEffect(() => {
@@ -122,6 +123,22 @@ export default function EquipamentosPage() {
     } catch (requestError) {
       console.error('Erro ao abrir edicao:', requestError);
       setError('Erro ao abrir edicao de equipamento.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao deste equipamento?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await equipamentosService.delete(id);
+      setEquipamentos((current) => current.filter((e) => e.id !== id));
+      setSuccess('Equipamento excluido com sucesso.');
+    } catch (requestError) {
+      console.error('Erro ao excluir equipamento:', requestError);
+      setError('Erro ao excluir equipamento.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -223,6 +240,13 @@ export default function EquipamentosPage() {
                     <div style={styles.actions}>
                       <button style={styles.actionButton} onClick={() => openEditModal(equipamento)}>
                         Editar
+                      </button>
+                      <button
+                        style={{ ...styles.actionButton, color: '#b71c1c' }}
+                        onClick={() => handleDelete(equipamento.id)}
+                        disabled={deletingId === equipamento.id}
+                      >
+                        {deletingId === equipamento.id ? 'Excluindo...' : 'Excluir'}
                       </button>
                     </div>
                   </td>

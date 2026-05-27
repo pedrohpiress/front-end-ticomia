@@ -63,6 +63,7 @@ export const despesasService = {
   getVencendoHoje: () => api.get('/despesas/vencendo-hoje'),
   pagar: (id, data) => api.post(`/despesas/${id}/pagar`, data),
   pagarComMultiplos: (id, data) => api.post(`/despesas/${id}/pagar-multiplo`, data),
+  delete: (id) => api.delete(`/despesas/${id}`),
 };
 
 // =====================
@@ -94,6 +95,7 @@ export const sociosService = {
 // EVENTOS
 // =====================
 export const eventosService = {
+  delete: (id) => api.delete(`/evento/${id}`),
   getAll: () => api.get('/evento'),
   getById: (id) => api.get(`/evento/${id}`),
   create: (data) => api.post('/evento', data),
@@ -108,6 +110,7 @@ export const eventosService = {
 export const contasService = {
   getAll: () => api.get('/contas'),
   getById: (id) => api.get(`/contas/${id}`),
+  delete: (id) => api.delete(`/equipamentos/${id}`),
   create: (data) => api.post('/contas', data),
   getSaldo: (id) => api.get(`/contas/${id}/saldo`),
   transferir: (data) => api.post('/contas/transferir', data),
@@ -130,6 +133,7 @@ export const bancosService = {
 export const fluxoCaixaService = {
   getAll: (pageable) => api.get('/fluxo-caixa', { params: pageable }),
   getById: (id) => api.get(`/fluxo-caixa/${id}`),
+  delete: (id) => api.delete(`/fluxo-caixa/${id}`),
   update: (id, data) => api.put(`/fluxo-caixa/${id}`, data),
   registrarEntrada: (data) => api.post('/fluxo-caixa/entrada', data),
   registrarSaida: (data) => api.post('/fluxo-caixa/saida', data),

@@ -45,6 +45,7 @@ export default function EventosPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', descricao: '', dataEvento: '', local: '' });
 
   useEffect(() => { fetchEventos(); }, []);
@@ -97,6 +98,22 @@ export default function EventosPage() {
       setModalOpen(false);
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao deste evento?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await eventosService.delete(id);
+      setEventos((current) => current.filter((e) => e.id !== id));
+      setSuccess('Evento excluido com sucesso.');
+    } catch (err) {
+      console.error('Erro ao excluir evento:', err);
+      setError('Erro ao excluir evento.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -180,6 +197,14 @@ export default function EventosPage() {
                       disabled={isSubmitting}
                     >
                       Editar
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...styles.actionButton, color: '#b71c1c' }}
+                      onClick={() => handleDelete(evento.id)}
+                      disabled={deletingId === evento.id}
+                    >
+                      {deletingId === evento.id ? 'Excluindo...' : 'Excluir'}
                     </button>
                   </div>
                 </td>

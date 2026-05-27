@@ -175,6 +175,7 @@ export default function FluxoCaixaPage() {
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEfetivandoId, setIsEfetivandoId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [filters, setFilters] = useState({ contaId: '', tipo: '', dataInicio: '', dataFim: '' });
   const [formData, setFormData] = useState({
     tipo: 'ENTRADA',
@@ -403,6 +404,22 @@ export default function FluxoCaixaPage() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirma a exclusao deste lancamento?')) return;
+    try {
+      setDeletingId(id);
+      setError(null);
+      await fluxoCaixaService.delete(id);
+      setLancamentos((current) => current.filter((l) => l.id !== id));
+      setSuccess('Lancamento excluido com sucesso.');
+    } catch (requestError) {
+      console.error('Erro ao excluir lancamento:', requestError);
+      setError('Erro ao excluir lancamento.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const getTipoBadge = (tipo) => {
     if (tipo === 'ENTRADA') return styles.badgeEntrada;
     if (tipo === 'SAIDA') return styles.badgeSaida;
@@ -506,6 +523,13 @@ export default function FluxoCaixaPage() {
                           disabled={lancamento.status === 'EFETIVADO' || isEfetivandoId === lancamento.id}
                         >
                           {isEfetivandoId === lancamento.id ? 'Efetivando...' : 'Efetivar'}
+                        </button>
+                        <button
+                          style={{ ...styles.actionButton, color: '#b71c1c' }}
+                          onClick={() => handleDelete(lancamento.id)}
+                          disabled={deletingId === lancamento.id}
+                        >
+                          {deletingId === lancamento.id ? 'Excluindo...' : 'Excluir'}
                         </button>
                       </div>
                     </td>
