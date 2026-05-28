@@ -142,6 +142,7 @@ export default function VendedoresPage() {
     tipoVendedorId: 1,
     ativo: true,
     observacoes: '',
+    faturamento: 0,
   });
 
   const tiposMap = useMemo(() => {
@@ -186,6 +187,7 @@ export default function VendedoresPage() {
       tipoVendedorId: 1,
       ativo: true,
       observacoes: '',
+      faturamento: 0,
     });
   };
 
@@ -207,6 +209,7 @@ export default function VendedoresPage() {
       whatsapp: telefone || undefined,
       ativo: Boolean(formData.ativo),
       observacoes: formData.observacoes || undefined,
+      faturamento: formData.faturamento != null && formData.faturamento !== '' ? Number(formData.faturamento) : 0,
     };
   };
 
@@ -231,6 +234,7 @@ export default function VendedoresPage() {
         tipoVendedorId: data.tipoVendedorId || 1,
         ativo: data.ativo !== false,
         observacoes: data.observacoes || '',
+        faturamento: data.faturamento != null ? Number(data.faturamento) : 0,
       });
     } catch (requestError) {
       console.error('Erro ao carregar vendedor:', requestError);
@@ -338,7 +342,7 @@ export default function VendedoresPage() {
                 <td style={styles.td}>{vendedor.cidade || '-'}</td>
                 <td style={styles.td}>{getTipoNome(vendedor)}</td>
                 <td style={styles.td}>{normalizePhoneForWhatsApp(vendedor.telefone) || '-'}</td>
-                <td style={styles.td}>{formatCurrency(vendedor.totalFaturamento)}</td>
+                <td style={styles.td}>{formatCurrency(vendedor.faturamento)}</td>
                 <td style={styles.td}>
                   <span style={{ ...styles.badge, ...(vendedor.ativo ? styles.badgeActive : styles.badgeInactive) }}>
                     {vendedor.ativo ? 'Ativo' : 'Inativo'}
@@ -427,6 +431,20 @@ export default function VendedoresPage() {
                   <label style={styles.label}>Observacoes</label>
                   <input style={styles.input} type="text" value={formData.observacoes} onChange={(event) => setFormData({ ...formData, observacoes: event.target.value })} />
                 </div>
+                {editingId && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Faturamento (R$)</label>
+                    <input
+                      style={styles.input}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.faturamento}
+                      onChange={(event) => setFormData({ ...formData, faturamento: event.target.value })}
+                      placeholder="0,00"
+                    />
+                  </div>
+                )}
                 <div style={styles.formGroup}>
                   <div style={styles.checkboxRow}>
                     <input
